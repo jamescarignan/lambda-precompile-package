@@ -1,6 +1,6 @@
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Precompile Lambda Packages - Boostrap stack
+Description: Precompile Lambda Packages - Bootstrap stack
 
 Parameters:
   EnvironmentName:
@@ -53,6 +53,15 @@ Resources:
             - s3:PutObject
             Resource:
             - !Sub arn:aws:s3:::${PrecompileDevopsBucket}/lambda-precompile-package/*
+      - PolicyName: CFN
+        PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+          - Effect: Allow
+            Action:
+            - cloudformation:DeleteStack
+            Resource:
+            - arn:aws:cloudformation:*:*:stack/precompile-infra/*
 
 Outputs:
   PrecompileInstanceProfile:

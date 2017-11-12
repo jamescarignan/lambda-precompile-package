@@ -102,8 +102,11 @@ Resources:
           sudo rm -rf Python-3.6.0
 
           # Install package via pip
+          REGION=$(curl http://169.254.169.254/latest/dynamic/instance-identity/document | grep region | awk -F\" '{print $4}')
           mkdir /root/tmp
           cd /root/tmp
           /usr/local/bin/pip3 install ${PackageName} -t .
           zip -r ${PackageName}.zip .
           aws s3 cp ${PackageName}.zip s3://${BucketName}/lambda-precompile-package/packages/
+          # TODO: figure out a clean way of allowing this instance to clean up the infra stack when finished
+          # aws cloudformation delete-stack --stack-name precompile-infra --region $REGION

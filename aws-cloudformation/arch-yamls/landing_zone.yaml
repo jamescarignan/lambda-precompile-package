@@ -12,7 +12,7 @@ Parameters:
     Default: dev
   AmiID:
     Type: String
-    Description: AMI Id for instance
+    Description: AMI Id for instance(i.e. for Amazon Linux)
   InstanceType:
     Type: String
     Description: Size of instance
