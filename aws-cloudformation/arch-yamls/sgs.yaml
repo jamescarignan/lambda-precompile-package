@@ -1,0 +1,45 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: Precompile Lambda Packages - Security Group stack
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+    - Label:
+        default: AWS Parameters
+      Parameters:
+        - Vpc
+        - AdminIP
+    ParameterLabels:
+      Vpc:
+        default: Vpc Id
+      AdminIP:
+        default: 1.2.3.4
+
+Parameters:
+  Vpc:
+    AllowedPattern: ^(vpc-)([a-z0-9]{8})$
+    Description: The Vpc Id of an existing Vpc.
+    Type: AWS::EC2::VPC::Id
+  AdminIP:
+    Type: String
+    Description: An IP address to allow SSH/RDP access to
+
+Resources:
+  PrecompileSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for Precompile instance
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: !Sub
+            - ${AdminIP}/32
+            - { AdminIP: !Ref AdminIP}
+      VpcId:
+        !Ref Vpc
+
+Outputs:
+  PrecompileSecurityGroup:
+    Value: !Ref PrecompileSecurityGroup

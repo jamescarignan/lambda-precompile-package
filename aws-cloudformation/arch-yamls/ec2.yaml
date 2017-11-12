@@ -1,0 +1,57 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: Precompile Lambda Packages - EC2 stack
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Description: Name of the precompiler environment
+    Default: dev
+  AmiID:
+    Type: String
+    Description: AMI Id for instance
+  InstanceType:
+    Type: String
+    Description: Size of instance
+    Default: t2.micro
+  PublicSubnet0:
+    Type: AWS::EC2::Subnet::Id
+    Description: ID of the public subnet
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup::Id
+    Description: ID of the security group
+
+Resources:
+  PrecompileInstance:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      BlockDeviceMappings:
+      - DeviceName: "/dev/xvdb"
+        Ebs:
+          DeleteOnTermination: True
+          VolumeType: gp2
+          VolumeSize:
+            10
+      IamInstanceProfile: !ImportValue
+        Fn::Sub:
+          - PrecompileInstanceProfile-${EnvironmentName}
+          - { EnvironmentName: !Ref EnvironmentName }
+      ImageId:
+        !Ref AmiID
+      InstanceType:
+        !Ref InstanceType
+      KeyName: !Sub
+        - ${EnvironmentName}-precompile-key
+        - { EnvironmentName: !Ref EnvironmentName }
+      Monitoring: True
+      NetworkInterfaces:
+        - DeviceIndex: 0
+          SubnetId:
+            !Ref PublicSubnet0
+          GroupSet:
+            - !Ref SecurityGroup
+          AssociatePublicIpAddress: true
+      Tags:
+        - Key: Name
+          Value:
+            !Join [ '', [ 'Precompile / ', !Ref 'AWS::StackName' ] ]

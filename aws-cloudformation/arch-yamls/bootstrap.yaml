@@ -1,0 +1,76 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: Precompile Lambda Packages - Boostrap stack
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Description: Name of the precompiler environment
+    Default: dev
+
+Resources:
+  PrecompileDevopsBucket:
+    Type: AWS::S3::Bucket
+  PrecompileInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: /precompile-lambda/
+      Roles:
+      - !Ref PrecompileInstanceRole
+  PrecompileInstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - ec2.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: /precompile-lambda/
+      Policies:
+      - PolicyName: logs
+        PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+          - Effect: Allow
+            Action:
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            - logs:DescribeLogStreams
+            Resource:
+            - arn:aws:logs:*:*:*
+      - PolicyName: S3
+        PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+          - Effect: Allow
+            Action:
+            - s3:GetObject
+            - s3:PutObject
+            Resource:
+            - !Sub arn:aws:s3:::${PrecompileDevopsBucket}/lambda_precompile_package/*
+
+Outputs:
+  PrecompileInstanceProfile:
+    Value:
+      !Ref PrecompileInstanceProfile
+    Export:
+      Name: !Sub PrecompileInstanceProfile-${EnvironmentName}
+  PrecompileDevopsBucketArn:
+    Value:
+      !GetAtt
+        - PrecompileDevopsBucket
+        - Arn
+    Export:
+      Name:
+        PrecompileDevopsBucketArn
+  PrecompileDevopsBucketName:
+    Value:
+      !Ref PrecompileDevopsBucket
+    Export:
+      Name:
+        PrecompileDevopsBucketName

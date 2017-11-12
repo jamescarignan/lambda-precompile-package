@@ -1,0 +1,74 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: Precompile Lambda Packages - landing zone stack
+
+Parameters:
+  AdminIP:
+    Type: String
+    Description: An IP address to allow SSH/RDP access to
+  EnvironmentName:
+    Type: String
+    Description: Name of the precompiler environment
+    Default: dev
+  AmiID:
+    Type: String
+    Description: AMI Id for instance
+  InstanceType:
+    Type: String
+    Description: Size of instance
+    Default: t2.micro
+  VpcCIDR:
+    Type: String
+    Description: IP Address range for VPC - typically use a /24 per deployment
+    MinLength: 9
+    MaxLength: 18
+    AllowedPattern: "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})"
+    ConstraintDescription: Must be a valid CIDR range of the form x.x.x.x/x.
+    Default: 10.0.99.0/24
+  PublicSubnet0CIDR:
+    Type: String
+    Description: IP Address range for PublicSubnet0CIDR
+    MinLength: 9
+    MaxLength: 18
+    AllowedPattern: "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})"
+    ConstraintDescription: Must be a valid CIDR range of the form x.x.x.x/x.
+    Default: 10.0.99.0/24
+
+Resources:
+  Network:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub
+        - https://s3.amazonaws.com/${DevopsBucket}/lambda-precompile-package/templates/network.yaml
+        - { DevopsBucket: !ImportValue PrecompileDevopsBucketName }
+      Parameters:
+        VpcCIDR:
+          !Ref VpcCIDR
+        PublicSubnet0CIDR:
+          !Ref PublicSubnet0CIDR
+  SecurityGroups:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: Network
+    Properties:
+      TemplateURL: !Sub
+        - https://s3.amazonaws.com/${DevopsBucket}/lambda-precompile-package/templates/sgs.yaml
+        - { DevopsBucket: !ImportValue PrecompileDevopsBucketName }
+      Parameters:
+        Vpc:
+          !GetAtt [ Network, Outputs.Vpc ]
+        AdminIP:
+          !Ref AdminIP
+  EC2:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: [ Network, SecurityGroups ]
+    Properties:
+      TemplateURL: !Sub
+        - https://s3.amazonaws.com/${DevopsBucket}/lambda-precompile-package/templates/ec2.yaml
+        - { DevopsBucket: !ImportValue PrecompileDevopsBucketName }
+      Parameters:
+        AmiID:
+          !Ref AmiID
+        PublicSubnet0:
+          !GetAtt [ Network, Outputs.PublicSubnet0 ]
+        SecurityGroup:
+          !GetAtt [ SecurityGroups, Outputs.PrecompileSecurityGroup ]
