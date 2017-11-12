@@ -1,6 +1,6 @@
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Precompile Lambda Packages - landing zone stack
+Description: Precompile Lambda Packages - Landing Zone stack
 
 Parameters:
   AdminIP:
@@ -33,6 +33,9 @@ Parameters:
     AllowedPattern: "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})"
     ConstraintDescription: Must be a valid CIDR range of the form x.x.x.x/x.
     Default: 10.0.99.0/24
+  PackageName:
+    Type: String
+    Description: Name of package to download from pip(Python 3.6)
 
 Resources:
   Network:
@@ -72,3 +75,7 @@ Resources:
           !GetAtt [ Network, Outputs.PublicSubnet0 ]
         SecurityGroup:
           !GetAtt [ SecurityGroups, Outputs.PrecompileSecurityGroup ]
+        PackageName:
+          !Ref PackageName
+        BucketName:
+          !ImportValue PrecompileDevopsBucketName

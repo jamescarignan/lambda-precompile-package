@@ -20,6 +20,12 @@ Parameters:
   SecurityGroup:
     Type: AWS::EC2::SecurityGroup::Id
     Description: ID of the security group
+  PackageName:
+    Type: String
+    Description: Name of the package to install
+  BucketName:
+    Type: String
+    Description: Name of the bucket to upload the zipped packages to
 
 Resources:
   PrecompileInstance:
@@ -55,3 +61,49 @@ Resources:
         - Key: Name
           Value:
             !Join [ '', [ 'Precompile / ', !Ref 'AWS::StackName' ] ]
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash -xe
+          # Script generously lifted from https://gist.github.com/niranjv/f80fc1f488afc49845e2ff3d5df7f83b
+          yum update
+
+          # install pre-requisites
+          sudo yum -y groupinstall development
+          sudo yum -y install zlib-devel
+          sudo yum -y install openssl-devel
+
+          # Installing openssl-devel alone seems to result in SSL errors in pip (see https://medium.com/@moreless/pip-complains-there-is-no-ssl-support-in-python-edbdce548852)
+          # Need to install OpenSSL also to avoid these errors
+          wget https://github.com/openssl/openssl/archive/OpenSSL_1_0_2l.tar.gz
+          tar -zxvf OpenSSL_1_0_2l.tar.gz
+          cd openssl-OpenSSL_1_0_2l/
+
+          ./config shared
+          make
+          sudo make install
+          export LD_LIBRARY_PATH=/usr/local/ssl/lib/
+
+          cd ..
+          rm OpenSSL_1_0_2l.tar.gz
+          rm -rf openssl-OpenSSL_1_0_2l/
+
+
+          # Install Python 3.6
+          wget https://www.python.org/ftp/python/3.6.0/Python-3.6.0.tar.xz
+          tar xJf Python-3.6.0.tar.xz
+          cd Python-3.6.0
+
+          ./configure
+          make
+          sudo make install
+
+          cd ..
+          rm Python-3.6.0.tar.xz
+          sudo rm -rf Python-3.6.0
+
+          # Install package via pip
+          mkdir /root/tmp
+          cd /root/tmp
+          /usr/local/bin/pip3 install ${PackageName} -t .
+          zip -r ${PackageName}.zip .
+          aws s3 cp ${PackageName}.zip s3://${BucketName}/lambda-precompile-package/packages/
