@@ -79,3 +79,5 @@ Resources:
           !Ref PackageName
         BucketName:
           !ImportValue PrecompileDevopsBucketName
+        TopicARN:
+          !ImportValue PrecompileTopicARN

@@ -1,12 +1,16 @@
 ---
 AWSTemplateFormatVersion: 2010-09-09
 Description: Precompile Lambda Packages - Bootstrap stack
+# These are permanent resources that don't need to be cleaned up after each run, as they cost little or no money
 
 Parameters:
   EnvironmentName:
     Type: String
     Description: Name of the precompiler environment
     Default: dev
+  EmailAddress:
+    Type: String
+    Description: Email Address used for Topic Subscription
 
 Resources:
   PrecompileDevopsBucket:
@@ -62,6 +66,23 @@ Resources:
             - cloudformation:DeleteStack
             Resource:
             - arn:aws:cloudformation:*:*:stack/precompile-infra/*
+      - PolicyName: SNS
+        PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+          - Effect: Allow
+            Action:
+            - sns:Publish
+            Resource:
+            - !Sub arn:aws:sns:*:*:Precompile-${EnvironmentName}
+
+  PrecompileTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub Precompile-${EnvironmentName}
+      Subscription:
+      - Endpoint: !Ref EmailAddress
+        Protocol: email
 
 Outputs:
   PrecompileInstanceProfile:
@@ -83,3 +104,10 @@ Outputs:
     Export:
       Name:
         PrecompileDevopsBucketName
+  SNSTopicARN:
+    Description: Topic ARN of newly created SNS topic
+    Value:
+      Ref: PrecompileTopic
+    Export:
+      Name:
+        PrecompileTopicARN

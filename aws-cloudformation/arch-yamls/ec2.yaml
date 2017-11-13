@@ -26,6 +26,9 @@ Parameters:
   BucketName:
     Type: String
     Description: Name of the bucket to upload the zipped packages to
+  TopicARN:
+    Type: String
+    Description: ARN of the SNS topic to publish notifications to
 
 Resources:
   PrecompileInstance:
@@ -108,5 +111,6 @@ Resources:
           /usr/local/bin/pip3 install ${PackageName} -t .
           zip -r ${PackageName}.zip .
           aws s3 cp ${PackageName}.zip s3://${BucketName}/lambda-precompile-package/packages/
+          aws sns publish --topic-arn ${TopicARN} --region $REGION --message "Your package ${PackageName} has been compiled, zipped and uploaded to: https://s3-$REGION.amazonaws.com/${BucketName}/lambda-precompile-package/packages/${PackageName}.zip"
           # TODO: figure out a clean way of allowing this instance to clean up the infra stack when finished
           # aws cloudformation delete-stack --stack-name precompile-infra --region $REGION
