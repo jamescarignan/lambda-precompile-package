@@ -74,6 +74,9 @@ Resources:
           sudo yum -y groupinstall development
           sudo yum -y install zlib-devel
           sudo yum -y install openssl-devel
+          sudo yum -y install libffi-devel
+          sudo yum -y install python36-devel
+          sudo yum install curl git m4 ruby texinfo bzip2-devel curl-devel expat-devel ncurses-devel
 
           # Installing openssl-devel alone seems to result in SSL errors in pip (see https://medium.com/@moreless/pip-complains-there-is-no-ssl-support-in-python-edbdce548852)
           # Need to install OpenSSL also to avoid these errors
@@ -90,6 +93,19 @@ Resources:
           rm OpenSSL_1_0_2l.tar.gz
           rm -rf openssl-OpenSSL_1_0_2l/
 
+          # Install Linuxbrew
+          sh -c "$(curl -fsSL https://raw.githubusercontent.com/Linuxbrew/install/master/install.sh)"
+          test -d ~/.linuxbrew && PATH="$HOME/.linuxbrew/bin:$HOME/.linuxbrew/sbin:$PATH"
+          test -d /home/linuxbrew/.linuxbrew && PATH="/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin:$PATH"
+          test -r ~/.bash_profile && echo "export PATH='$(brew --prefix)/bin:$(brew --prefix)/sbin'":'"$PATH"' >>~/.bash_profile
+          echo "export PATH='$(brew --prefix)/bin:$(brew --prefix)/sbin'":'"$PATH"' >>~/.profile
+
+          # Install nodejs
+          brew install nodejs
+
+          # install sls + plugins
+          npm install -g serverless
+          sls plugin install -n serverless-python-requirements
 
           # Install Python 3.6
           wget https://www.python.org/ftp/python/3.6.0/Python-3.6.0.tar.xz
@@ -108,6 +124,7 @@ Resources:
           REGION=$(curl http://169.254.169.254/latest/dynamic/instance-identity/document | grep region | awk -F\" '{print $4}')
           mkdir /root/tmp
           cd /root/tmp
+          #/usr/local/bin/pip3 install ${PackageName} --no-binary ${PackageName} -t .
           /usr/local/bin/pip3 install ${PackageName} -t .
           zip -r ${PackageName}.zip .
           aws s3 cp ${PackageName}.zip s3://${BucketName}/lambda-precompile-package/packages/
